@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Open Links in Modal
 // @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Open all links in a modal window after all AJAX requests have finished and specific elements are created
+// @version      1.0
+// @description  Open all links in a modal window after the div with id="iteration-content" has loaded
 // @author       Your Name
 // @match        *://*/*
 // @grant        none
@@ -10,34 +10,6 @@
 
 (function() {
     'use strict';
-
-    let activeAjaxRequests = 0;
-
-    // Override XMLHttpRequest to keep track of active requests
-    (function(open, send) {
-        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-            this.addEventListener('readystatechange', function() {
-                if (this.readyState == 1) {
-                    activeAjaxRequests++;
-                } else if (this.readyState == 4) {
-                    activeAjaxRequests--;
-                }
-            }, false);
-            open.call(this, method, url, async, user, password);
-        };
-        XMLHttpRequest.prototype.send = function(data) {
-            send.call(this, data);
-        };
-    })(XMLHttpRequest.prototype.open, XMLHttpRequest.prototype.send);
-
-    function waitForAjaxRequests(callback) {
-        const checkAjaxInterval = setInterval(() => {
-            if (activeAjaxRequests === 0) {
-                clearInterval(checkAjaxInterval);
-                callback();
-            }
-        }, 100);
-    }
 
     function createModal() {
         const body = document.body;
@@ -107,12 +79,12 @@
         });
     }
 
-    function waitForElementCreation(elementSelector, callback) {
+    function waitForElementCreation(elementId, callback) {
         const observer = new MutationObserver((mutationsList, observer) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList') {
-                    const elements = document.querySelectorAll(elementSelector);
-                    if (elements.length > 0) {
+                    const element = document.getElementById(elementId);
+                    if (element) {
                         observer.disconnect();
                         callback();
                     }
@@ -123,10 +95,8 @@
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    waitForAjaxRequests(() => {
-        waitForElementCreation('a', () => {
-            const modal = createModal();
-            addLinkListeners(modal);
-        });
+    waitForElementCreation('iteration-content', () => {
+        const modal = createModal();
+        addLinkListeners(modal);
     });
 })();
