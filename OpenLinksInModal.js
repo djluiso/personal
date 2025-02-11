@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Open Links in Modal
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Open all links in a modal window after the div with id="iteration-content" has loaded
+// @version      1.6
+// @description  Open all links in a modal window after the div with id="iteration-content" has loaded and block other click listeners on the links
 // @author       Your Name
 // @match        *://*/*
 // @grant        none
@@ -71,8 +71,13 @@
         const iframe = document.getElementById('modalIframe');
 
         links.forEach(link => {
-            link.addEventListener('click', function(event) {
+            // Clone the link element to remove previous listeners
+            const clone = link.cloneNode(true);
+            link.parentNode.replaceChild(clone, link);
+
+            clone.addEventListener('click', function(event) {
                 event.preventDefault();
+                event.stopPropagation(); // Block other click listeners
                 iframe.src = this.href;
                 modal.style.display = 'block';
             });
