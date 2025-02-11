@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Open Links in Modal
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Open all links in a modal window after all AJAX requests have finished
 // @author       Your Name
 // @match        *://*/*
@@ -30,7 +30,16 @@
         };
     })(XMLHttpRequest.prototype.open, XMLHttpRequest.prototype.send);
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function waitForAjaxRequests(callback) {
+        const checkAjaxInterval = setInterval(() => {
+            if (activeAjaxRequests === 0) {
+                clearInterval(checkAjaxInterval);
+                callback();
+            }
+        }, 100);
+    }
+
+    function addLinkListeners() {
         const links = document.querySelectorAll('a');
         const body = document.body;
 
@@ -94,14 +103,11 @@
         links.forEach(link => {
             link.addEventListener('click', function(event) {
                 event.preventDefault();
-                const checkAjaxInterval = setInterval(() => {
-                    if (activeAjaxRequests === 0) {
-                        clearInterval(checkAjaxInterval);
-                        iframe.src = link.href;
-                        modal.style.display = 'block';
-                    }
-                }, 100);
+                iframe.src = this.href;
+                modal.style.display = 'block';
             });
         });
-    });
+    }
+
+    waitForAjaxRequests(addLinkListeners);
 })();
